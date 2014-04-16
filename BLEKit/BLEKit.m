@@ -327,7 +327,7 @@ static NSMapTable *BLECustomActionClassess;
     NSSet *monitoredRegions = [self.locationManager.monitoredRegions filteredSetUsingPredicate:[NSPredicate predicateWithFormat:@"SELF.identifier IN %@",monitoredRegionIdentifiers]];
     for (CLBeaconRegion *region in monitoredRegions) {
         if ([self.locationManager.rangedRegions containsObject:region]) {
-            [self.locationManager stopMonitoringForRegion:region];
+            [self.locationManager stopRangingBeaconsInRegion:region];
         }
         [self.locationManager stopMonitoringForRegion:region];
     }
@@ -708,21 +708,13 @@ static NSMapTable *BLECustomActionClassess;
             if ([rangedBeacon.blekit_identifier hasPrefix:bleBeacon.identifier]) {
                 bleBeacon.accuracy = rangedBeacon.accuracy;
                 bleBeacon.rssi = rangedBeacon.rssi;
-                // Guess the proximty based on accuracy value
-                if (rangedBeacon.proximity != CLProximityUnknown && rangedBeacon.accuracy > 0) {
-                    CLProximity guessedProximity = CLProximityUnknown;
-                    if (rangedBeacon.accuracy < 0.5) {
-                        guessedProximity = CLProximityImmediate;
-                    } else if (rangedBeacon.accuracy <= 3.0) {
-                        guessedProximity = CLProximityNear;
-                    } else {
-                        guessedProximity = CLProximityFar;
-                    }
-                    
-                    if (bleBeacon.proximity != guessedProximity) {
-                        bleBeacon.proximity = guessedProximity;
-                        [self beaconProximityDidChange:bleBeacon];
-                    }
+                /* Changed to using the supplied proximity value.
+                   Checking to see if the proximity changed. */
+                if (bleBeacon.proximity != rangedBeacon.proximity){
+                    bleBeacon.proximity = rangedBeacon.proximity;
+                    [self beaconProximityDidChange:bleBeacon];
+                } else {
+                    bleBeacon.proximity = rangedBeacon.proximity;
                 }
             }
         }
