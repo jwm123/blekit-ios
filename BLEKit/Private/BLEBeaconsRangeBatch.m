@@ -28,10 +28,10 @@
 
 #import "BLEBeaconsRangeBatch.h"
 
-#define BLERangingSecondsTimeFrame 2
+#define BLERangingSecondsTimeFrame 0
 
 // timeout value since last read. After that amount of time batch is cheared out
-#define BLERangingSecondsTimeout 120
+#define BLERangingSecondsTimeout 2
 
 static NSDate *lastRanging;
 

@@ -699,22 +699,40 @@ static NSMapTable *BLECustomActionClassess;
         return;
     }
 
-    NSArray *knownRangedBeacons = [rangedBeacons filteredArrayUsingPredicate:[NSPredicate predicateWithFormat:@"accuracy > 0"]];
-    NSArray *rangedBeaconsSorted = [knownRangedBeacons sortedArrayUsingDescriptors:@[[NSSortDescriptor sortDescriptorWithKey:@"accuracy" ascending:YES],[NSSortDescriptor sortDescriptorWithKey:@"rssi" ascending:YES]]];
+    NSArray *knownRangedBeacons = [rangedBeacons filteredArrayUsingPredicate:[NSPredicate predicateWithFormat:@"rssi > -90 && rssi <= 0"]];
+    //NSArray *rangedBeaconsSorted = [knownRangedBeacons sortedArrayUsingDescriptors:@[[NSSortDescriptor sortDescriptorWithKey:@"proximity" ascending:YES],[NSSortDescriptor sortDescriptorWithKey:@"accuracy" ascending:YES]]];
     
-    if (rangedBeaconsSorted.count > 0) {
+    if (knownRangedBeacons.count > 0) {
         for (BLEBeacon *bleBeacon in self.beacons) {
-            CLBeacon *rangedBeacon = rangedBeaconsSorted[0];
+            CLBeacon *rangedBeacon = [knownRangedBeacons lastObject];
             if ([rangedBeacon.blekit_identifier hasPrefix:bleBeacon.identifier]) {
-                bleBeacon.accuracy = rangedBeacon.accuracy;
-                bleBeacon.rssi = rangedBeacon.rssi;
-                /* Changed to using the supplied proximity value.
-                   Checking to see if the proximity changed. */
-                if (bleBeacon.proximity != rangedBeacon.proximity){
-                    bleBeacon.proximity = rangedBeacon.proximity;
-                    [self beaconProximityDidChange:bleBeacon];
-                } else {
-                    bleBeacon.proximity = rangedBeacon.proximity;
+                NSInteger count = 0;
+                CLLocationAccuracy accuracy = 0.0;
+                NSInteger rssi = 0;
+                CLProximity proximity = CLProximityUnknown;
+                
+                // Lets take an average.
+                for (rangedBeacon in [knownRangedBeacons reverseObjectEnumerator]){
+                    if ([rangedBeacon.blekit_identifier hasPrefix:bleBeacon.identifier]) {
+                        count++;
+                        accuracy += rangedBeacon.accuracy;
+                        rssi += rangedBeacon.rssi;
+                        proximity += rangedBeacon.proximity;
+                    }
+                }
+                
+                if (count > 0){
+                    bleBeacon.accuracy = accuracy / (double) count;
+                    bleBeacon.rssi = rssi / count;
+                    proximity = proximity / count;
+                    /* Changed to using the supplied proximity value.
+                       Checking to see if the proximity changed. */
+                    if (bleBeacon.proximity != proximity){
+                        bleBeacon.proximity = proximity;
+                        [self beaconProximityDidChange:bleBeacon];
+                    } else {
+                         bleBeacon.proximity = proximity;
+                    }
                 }
             }
         }
